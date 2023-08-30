@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 public abstract class CommandBase implements CommandExecutor {
 
@@ -105,19 +106,22 @@ public abstract class CommandBase implements CommandExecutor {
         return offlinePlayer;
     }
 
-    protected List<Member> getMemberFromArgs(int index) throws CKException {
-        if (args.length < (index+1)) {
-            throw new CKException("You must enter a player's name!");
-        }
-        String name = args[index].toLowerCase();
-        name = name.replace("%", "(\\w*)");
-
-        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(name);
-        if (!offlinePlayer.hasPlayedBefore()) {
-            throw new CKException("The player you specified doesn't exist!");
-        }
+    protected List<Member> getMemberFromPlayer(UUID playerId) throws CKException {
         try {
-            return Database.members.queryForEq("playerId", offlinePlayer.getUniqueId());
+            return Database.members.queryForEq("playerId", playerId);
+        } catch (SQLException e) {
+            throw new CKException("Unable to connect to database! Contact an admin!");
+        }
+    }
+
+    protected List<Member> getMemberFromPlayer(UUID playerId, Group group) throws CKException {
+        try {
+            return Database.members.queryBuilder()
+                    .where()
+                    .eq("group_id", group)
+                    .and()
+                    .eq("playerId", playerId)
+                    .query();
         } catch (SQLException e) {
             throw new CKException("Unable to connect to database! Contact an admin!");
         }

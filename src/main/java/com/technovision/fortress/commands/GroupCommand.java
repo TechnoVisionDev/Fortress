@@ -13,7 +13,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
+import javax.xml.crypto.Data;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,19 +39,19 @@ public class GroupCommand extends CommandBase {
         commands.put("invite", "<group> <player> - Invite a player to join a group.");
         commands.put("rescind", "<group> <player> - Cancel a player's invite to your group.");
         commands.put("join", "<group> [password] - Join a group that has invited you (or use a password).");
-        commands.put("leave", "<group> - Leave a group that you are currently in.");
-        commands.put("list", "[player] - List all groups that you or another player are in.");
         commands.put("invites", "List all groups that have invited you.");
-        commands.put("remove", "<group> <player> - Remove a player from your group.");
-        commands.put("perms", "Manage permissions for player ranks in a group.");
-        commands.put("bio", "<group> <text> - Set a biography for a group (100 chars max).");
-        commands.put("delete", "<group> - Delete a group you are currently in.");
-        commands.put("info", "<group> - Display information about a group.");
-        commands.put("promote", "<group> <player> <rank> - Promote or demote a player to a new rank.");
-        commands.put("transfer", "<group> <player> - Transfer ownership of a group.");
 
         // Not Yet Implemented
         /**
+         commands.put("leave", "<group> - Leave a group that you are currently in.");
+         commands.put("list", "[player] - List all groups that you or another player are in.");
+         commands.put("remove", "<group> <player> - Remove a player from your group.");
+         commands.put("perms", "Manage permissions for player ranks in a group.");
+         commands.put("bio", "<group> <text> - Set a biography for a group (100 chars max).");
+         commands.put("delete", "<group> - Delete a group you are currently in.");
+         commands.put("info", "<group> - Display information about a group.");
+         commands.put("promote", "<group> <player> <rank> - Promote or demote a player to a new rank.");
+         commands.put("transfer", "<group> <player> - Transfer ownership of a group.");
          commands.put("link", "[super-group] [sub-group] - Link two groups together.");
          commands.put("unlink", "[super-group] [sub-group] - Unlink two groups from each other.");
          commands.put("merge", "[group] [merge-group] - Merges the first group into the second group.");
@@ -118,11 +120,9 @@ public class GroupCommand extends CommandBase {
 
         // Get player to invite from args
         OfflinePlayer playerToInvite = getPlayerFromArgs(2);
-        List<Member> memberToInvite = Database.members.queryForEq("playerId", playerToInvite.getUniqueId());
-        for (Member m : memberToInvite) {
-            if (m.getGroup().getName().equalsIgnoreCase(group.getName())) {
-                throw new CKException("Your group has already invited that player to join!");
-            }
+        List<Member> memberToInvite = getMemberFromPlayer(playerToInvite.getUniqueId(), group);
+        if (!memberToInvite.isEmpty()) {
+            throw new CKException("Your group has already invited that player to join!");
         }
 
         // Invite player
@@ -167,6 +167,71 @@ public class GroupCommand extends CommandBase {
 
         group.acceptPlayer(member);
         sendMessageToGroup(group, msg);
+    }
+
+    public void rescind_cmd() throws CKException, SQLException {
+        // Get group from args
+        Group group = getGroupFromArgs(1);
+        if (group.isPublic()) {
+            throw new CKException("That group is public and thus does not use invites!");
+        }
+
+        // Check if sender can rescind invites
+        Member member = getMember(group);
+        if (member == null || !member.hasRank()) {
+            throw new CKException("You are not a member of that group!");
+        }
+        if (!member.hasPermission("MEMBERS")) {
+            throw new CKException("You need the "+ChatColor.YELLOW+"MEMBERS"+ChatColor.RED+" permission to rescind invites.");
+        }
+
+        // Get member to rescind invite from args
+        if (args.length < 3) {
+            throw new CKException("You must specify a player!");
+        }
+        OfflinePlayer invitedPlayer = getPlayerFromArgs(2);
+        List<Member> invitedMembers = getMemberFromPlayer(invitedPlayer.getUniqueId(), group);
+        if (invitedMembers.isEmpty()) {
+            throw new CKException("That player doesn't have an invite!");
+        }
+        Member invitedMember = invitedMembers.get(0);
+        if (invitedMember.hasRank()) {
+            throw new CKException("That player is already in your group!");
+        }
+
+        // Rescind invite
+        group.uninvitePlayer(invitedMember);
+
+        // Send messages
+        if (invitedPlayer.isOnline()) {
+            MessageUtils.send(invitedPlayer, ChatColor.YELLOW + group.getName() + ChatColor.GRAY + " has rescinded their invite to you.");
+        }
+        MessageUtils.send(getPlayer(), ChatColor.GRAY + "You rescinded an invite to " + ChatColor.YELLOW + invitedPlayer.getName() + ChatColor.GRAY + " from " + ChatColor.YELLOW + group.getName() + ChatColor.GRAY + ".");
+    }
+
+    public void invites_cmd() throws CKException {
+        Player player = getPlayer();
+        List<Member> members = getMemberFromPlayer(player.getUniqueId());
+
+        // Get list of valid invites
+        List<String> groupList = new ArrayList<>();
+        for (Member member : members) {
+            if (member.isInvited()) {
+                String groupString = String.format("%s%s",
+                        ChatColor.YELLOW,
+                        member.getGroup().getName()
+                );
+                groupList.add(groupString);
+            }
+        }
+        if (groupList.isEmpty()) {
+            MessageUtils.send(sender, ChatColor.GRAY+"You do not have any group invites yet!");
+            return;
+        }
+
+        // Send invites to player
+        MessageUtils.sendHeading(player, "Your Invites");
+        MessageUtils.send(player, groupList.toArray(new String[0]));
     }
 
     private String[] createGroupMessage(Group group) {

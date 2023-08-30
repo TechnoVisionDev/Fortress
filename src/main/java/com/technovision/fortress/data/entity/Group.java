@@ -88,6 +88,10 @@ public class Group {
         Database.members.create(invitedMember);
     }
 
+    public void uninvitePlayer(Member member) throws SQLException {
+        Database.members.delete(member);
+    }
+
     public void acceptPlayer(Member member) throws SQLException {
         member.setRank(memberRank);
         Database.members.createOrUpdate(member);

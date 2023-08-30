@@ -42,6 +42,10 @@ public class Member {
         return rank == null;
     }
 
+    public boolean hasRank() {
+        return rank != null;
+    }
+
     public boolean hasPermission(String permission) {
         if (rank.getName().equalsIgnoreCase("owner")) return true;
         return rank.hasPermission(permission);
