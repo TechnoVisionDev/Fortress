@@ -137,24 +137,36 @@ public class GroupCommand extends CommandBase {
 
     public void join_cmd() throws CKException, SQLException {
         Group group = getGroupFromArgs(1);
+        Player player = getPlayer();
         Member member = getMember(group);
+        String msg = String.format("%s%s%s has joined the group %s%s", ChatColor.YELLOW, player.getName(), ChatColor.GRAY, ChatColor.YELLOW, group.getName());
+
         if (member == null) {
+            member = new Member(player.getUniqueId(), group, group.getMemberRank());
+            if (group.isPublic()) {
+                group.acceptPlayer(member);
+                sendMessageToGroup(group, msg);
+                MessageUtils.send(player, String.format("%s[%s%s%s] %s", ChatColor.GRAY, ChatColor.GOLD, group.getName(), ChatColor.GRAY, msg));
+                return;
+            }
+            if (group.getPassword() != null) {
+                if (args.length >= 3 && group.getPassword().equals(args[2])) {
+                    group.acceptPlayer(member);
+                    sendMessageToGroup(group, msg);
+                    MessageUtils.send(player, String.format("%s[%s%s%s] %s", ChatColor.GRAY, ChatColor.GOLD, group.getName(), ChatColor.GRAY, msg));
+                    return;
+                } else {
+                    throw new CKException("The password you entered is not correct or you haven't been invited!");
+                }
+            }
             throw new CKException("You have not been invited by that group!");
         }
         if (!member.isInvited()) {
             throw new CKException("You are already a member of that group!");
         }
 
-        // TODO: Check for things like public groups and passwords
-
         group.acceptPlayer(member);
-        sendMessageToGroup(group, String.format("%s%s%s has joined the group %s%s",
-                ChatColor.YELLOW,
-                Bukkit.getPlayer(member.getPlayerId()).getName(),
-                ChatColor.GRAY,
-                ChatColor.YELLOW,
-                group.getName()
-        ));
+        sendMessageToGroup(group, msg);
     }
 
     private String[] createGroupMessage(Group group) {
