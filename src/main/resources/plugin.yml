@@ -1,0 +1,8 @@
+name: Fortress
+version: 1.0.0
+main: com.technovision.fortress.Fortress
+commands:
+  group:
+    description: Manage your groups
+    usage: /group
+    aliases: [g]
