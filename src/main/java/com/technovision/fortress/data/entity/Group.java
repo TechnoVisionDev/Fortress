@@ -2,6 +2,7 @@ package com.technovision.fortress.data.entity;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.ForeignCollectionField;
+import com.j256.ormlite.stmt.DeleteBuilder;
 import com.technovision.fortress.data.Database;
 
 import javax.persistence.*;
@@ -88,13 +89,25 @@ public class Group {
         Database.members.create(invitedMember);
     }
 
-    public void uninvitePlayer(Member member) throws SQLException {
+    public void removePlayer(Member member) throws SQLException {
         Database.members.delete(member);
     }
 
     public void acceptPlayer(Member member) throws SQLException {
         member.setRank(memberRank);
         Database.members.createOrUpdate(member);
+    }
+
+    public void delete() throws SQLException {
+        DeleteBuilder<Rank, Integer> rankBuilder = Database.ranks.deleteBuilder();
+        rankBuilder.where().eq("group_id", name);
+        rankBuilder.delete();
+
+        DeleteBuilder<Member, Integer> memBuilder = Database.members.deleteBuilder();
+        memBuilder.where().eq("group_id", name);
+        memBuilder.delete();
+
+        Database.groups.delete(this);
     }
 
     /** Getters */
@@ -139,18 +152,25 @@ public class Group {
         return adminRank;
     }
 
+    public Rank getOwnerRank() {
+        return ownerRank;
+    }
+
+
     /** Setters */
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setBiography(String biography) {
+    public void setBiography(String biography) throws SQLException {
         this.biography = biography;
+        Database.groups.update(this);
     }
 
-    public void setOwnerID(UUID ownerID) {
+    public void setOwnerID(UUID ownerID) throws SQLException {
         this.ownerID = ownerID;
+        Database.groups.update(this);
     }
 
     public void setPublic(boolean aPublic) {

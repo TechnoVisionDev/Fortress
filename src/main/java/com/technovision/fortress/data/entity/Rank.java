@@ -1,6 +1,7 @@
 package com.technovision.fortress.data.entity;
 
 import com.j256.ormlite.field.DatabaseField;
+import com.technovision.fortress.data.enums.Permissions;
 
 import javax.persistence.Entity;
 
@@ -134,62 +135,80 @@ public class Rank {
         }
     }
 
-    public boolean hasPermission(String permission) {
-        if (permission.equalsIgnoreCase("BLOCKS")) {
-            return blocksPermission;
-        }
-        if (permission.equalsIgnoreCase("DOORS")) {
-            return doorsPermission;
-        }
-        if (permission.equalsIgnoreCase("CHESTS")) {
-            return chestsPermission;
-        }
-        if (permission.equalsIgnoreCase("CONTAINERS")) {
-            return containersPermission;
-        }
-        if (permission.equalsIgnoreCase("BEDS")) {
-            return bedsPermission;
-        }
-        if (permission.equalsIgnoreCase("ADMINS")) {
-            return adminsPermission;
-        }
-        if (permission.equalsIgnoreCase("MODS")) {
-            return modsPermission;
-        }
-        if (permission.equalsIgnoreCase("MEMBERS")) {
-            return membersPermission;
-        }
-        if (permission.equalsIgnoreCase("PASSWORD")) {
-            return passwordPermission;
-        }
-        if (permission.equalsIgnoreCase("SUBGROUP")) {
-            return subgroupPermission;
-        }
-        if (permission.equalsIgnoreCase("PERMS")) {
-            return permsPermission;
-        }
-        if (permission.equalsIgnoreCase("DELETE")) {
-            return deletePermission;
-        }
-        if (permission.equalsIgnoreCase("MERGE")) {
-            return mergePermission;
-        }
-        if (permission.equalsIgnoreCase("CROPS")) {
-            return cropsPermission;
-        }
-        if (permission.equalsIgnoreCase("SNITCH_NAME")) {
-            return snitchNamePermission;
-        }
-        if (permission.equalsIgnoreCase("SNITCH_IMMUNE")) {
-            return snitchImmunePermission;
-        }
-        if (permission.equalsIgnoreCase("SNITCH_VIEW")) {
-            return snitchViewPermission;
-        }
-        if (permission.equalsIgnoreCase("LINKING")) {
-            return linkingPermission;
+    public boolean hasPermission(Permissions permission) {
+        switch (permission) {
+            case BLOCKS -> {
+                return blocksPermission;
+            }
+            case DOORS -> {
+                return doorsPermission;
+            }
+            case CHESTS -> {
+                return chestsPermission;
+            }
+            case CONTAINERS -> {
+                return containersPermission;
+            }
+            case BEDS -> {
+                return bedsPermission;
+            }
+            case ADMINS -> {
+                return adminsPermission;
+            }
+            case MODS -> {
+                return modsPermission;
+            }
+            case MEMBERS -> {
+                return membersPermission;
+            }
+            case PASSWORD -> {
+                return passwordPermission;
+            }
+            case SUBGROUP -> {
+                return subgroupPermission;
+            }
+            case PERMS -> {
+                return permsPermission;
+            }
+            case DELETE -> {
+                return deletePermission;
+            }
+            case MERGE -> {
+                return mergePermission;
+            }
+            case CROPS -> {
+                return cropsPermission;
+            }
+            case SNITCH_NAME -> {
+                return snitchNamePermission;
+            }
+            case SNITCH_IMMUNE -> {
+                return snitchImmunePermission;
+            }
+            case SNITCH_VIEW -> {
+                return snitchViewPermission;
+            }
+            case LINKING -> {
+                return linkingPermission;
+            }
         }
         return false;
+    }
+
+    public boolean isMember() {
+        return name.equalsIgnoreCase("member");
+    }
+
+    public boolean isModerator() {
+        return name.equalsIgnoreCase("moderator");
+    }
+
+    public boolean isAdmin() {
+        return name.equalsIgnoreCase("admin");
+    }
+
+    public boolean isOwner() {
+        return name.equalsIgnoreCase("owner");
     }
 
     /** Getters */

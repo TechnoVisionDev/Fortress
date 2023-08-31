@@ -4,6 +4,7 @@ import com.technovision.fortress.Fortress;
 import com.technovision.fortress.data.Database;
 import com.technovision.fortress.data.entity.Group;
 import com.technovision.fortress.data.entity.Member;
+import com.technovision.fortress.data.entity.Rank;
 import com.technovision.fortress.util.CKException;
 import com.technovision.fortress.util.MessageUtils;
 import org.bukkit.Bukkit;
@@ -57,39 +58,35 @@ public abstract class CommandBase implements CommandExecutor {
     /* Called before command is executed to check permissions. */
     public abstract void permissionCheck() throws CKException;
 
-    public Group getGroupFromArgs(int index) throws CKException {
-        try {
-            if (args.length < index + 1) {
-                throw new CKException("You must specify a group name!");
-            }
-            List<Group> groups = Database.groups.queryForEq("name", args[index]);
-            if (groups.isEmpty()) {
-                throw new CKException("The group " + ChatColor.YELLOW + args[index] + ChatColor.RED + " doesn't exist!");
-            }
-            return groups.get(0);
-        } catch (SQLException e) {
-            throw new CKException("Unable to connect to database! Contact an admin!");
+    public Group getGroupFromArgs(int index) throws CKException, SQLException {
+        if (args.length < index + 1) {
+            throw new CKException("You must specify a group name!");
         }
+        List<Group> groups = Database.groups.queryForEq("name", args[index]);
+        if (groups.isEmpty()) {
+            throw new CKException("The group " + ChatColor.YELLOW + args[index] + ChatColor.RED + " doesn't exist!");
+        }
+        return groups.get(0);
     }
 
-    public Member getMember(Group group) throws CKException {
-        try {
-            if (!(sender instanceof Player player)) {
-                return null;
-            }
-            List<Member> groupMembers = Database.members.queryBuilder()
-                    .where()
-                    .eq("group_id", group)
-                    .and()
-                    .eq("playerId", player.getUniqueId())
-                    .query();
-            if (!groupMembers.isEmpty()) {
-                return groupMembers.get(0);
-            }
+    public Member getMember(Group group) throws SQLException {
+        if (!(sender instanceof Player player)) {
             return null;
-        } catch (SQLException e) {
-            throw new CKException("Unable to connect to database! Contact an admin!");
         }
+        List<Member> groupMembers = Database.members.queryBuilder()
+                .where()
+                .eq("group_id", group)
+                .and()
+                .eq("playerId", player.getUniqueId())
+                .query();
+        if (!groupMembers.isEmpty()) {
+            return groupMembers.get(0);
+        }
+        return null;
+    }
+
+    public List<Member> getMembers(Group group) throws SQLException {
+        return Database.members.queryForEq("group_id", group);
     }
 
     protected OfflinePlayer getPlayerFromArgs(int index) throws CKException {
@@ -114,27 +111,53 @@ public abstract class CommandBase implements CommandExecutor {
         }
     }
 
-    protected List<Member> getMemberFromPlayer(UUID playerId, Group group) throws CKException {
+    protected Member getMemberFromPlayer(UUID playerId, Group group) throws SQLException {
+        List<Member> members = Database.members.queryBuilder()
+                .where()
+                .eq("group_id", group)
+                .and()
+                .eq("playerId", playerId)
+                .query();
+        if (members.isEmpty()) return null;
+        return members.get(0);
+    }
+
+    public Rank getRankFromArgs(int index, Group group) throws CKException, SQLException {
+        if (args.length < index+1) {
+            throw new CKException("You must specify a player rank!");
+        }
         try {
-            return Database.members.queryBuilder()
+            List<Rank> ranks = Database.ranks.queryBuilder()
                     .where()
                     .eq("group_id", group)
                     .and()
-                    .eq("playerId", playerId)
+                    .eq("name", args[index].toLowerCase())
                     .query();
-        } catch (SQLException e) {
-            throw new CKException("Unable to connect to database! Contact an admin!");
+            if (ranks.isEmpty()) return null;
+            return ranks.get(0);
+        } catch (IllegalArgumentException e) {
+            throw new CKException("The rank " + ChatColor.YELLOW + args[index] + ChatColor.RED + " doesn't exist!");
         }
     }
 
-    protected void sendMessageToGroup(Group group, String message) {
-        message = String.format("%s[%s%s%s] %s", ChatColor.GRAY, ChatColor.GOLD, group.getName(), ChatColor.GRAY, message);
-        for (Member member : group.getMembers()) {
-            Player player = Bukkit.getPlayer(member.getPlayerId());
-            if (player != null) {
-                player.sendMessage(message);
-            }
+    protected String[] stripArgs(String[] someArgs, int amount) {
+        if (amount >= someArgs.length) {
+            return new String[0];
         }
+        String[] argsLeft = new String[someArgs.length - amount];
+        for (int i = 0; i < argsLeft.length; i++) {
+            argsLeft[i] = someArgs[i+amount];
+        }
+        return argsLeft;
+    }
+
+    protected String combineArgs(String[] someArgs) {
+        String combined = "";
+        for (String str : someArgs) {
+            combined += str + " ";
+        }
+        combined = combined.trim();
+        return combined;
     }
 
     @Override

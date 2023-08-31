@@ -1,5 +1,8 @@
 package com.technovision.fortress.util;
 
+import com.technovision.fortress.data.entity.Group;
+import com.technovision.fortress.data.entity.Member;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -23,6 +26,16 @@ public class MessageUtils {
                 ((Player) sender).sendMessage(line);
             } else {
                 ((CommandSender) sender).sendMessage(line);
+            }
+        }
+    }
+
+    public static void sendGroup(Group group, String message) {
+        message = String.format("%s[%s%s%s] %s", ChatColor.GRAY, ChatColor.GOLD, group.getName(), ChatColor.GRAY, message);
+        for (Member member : group.getMembers()) {
+            Player player = Bukkit.getPlayer(member.getPlayerId());
+            if (player != null) {
+                player.sendMessage(message);
             }
         }
     }

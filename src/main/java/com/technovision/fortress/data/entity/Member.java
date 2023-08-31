@@ -1,8 +1,11 @@
 package com.technovision.fortress.data.entity;
 
 import com.j256.ormlite.field.DatabaseField;
+import com.technovision.fortress.data.Database;
+import com.technovision.fortress.data.enums.Permissions;
 
 import javax.persistence.Entity;
+import java.sql.SQLException;
 import java.util.UUID;
 
 @Entity(name = "members")
@@ -46,9 +49,25 @@ public class Member {
         return rank != null;
     }
 
-    public boolean hasPermission(String permission) {
+    public boolean hasPermission(Permissions permission) {
         if (rank.getName().equalsIgnoreCase("owner")) return true;
         return rank.hasPermission(permission);
+    }
+
+    public boolean isOwner() {
+        return rank.getName().equalsIgnoreCase("owner");
+    }
+
+    public boolean isAdmin() {
+        return rank.getName().equalsIgnoreCase("admin");
+    }
+
+    public boolean isModerator() {
+        return rank.getName().equalsIgnoreCase("moderator");
+    }
+
+    public boolean isMember() {
+        return rank.getName().equalsIgnoreCase("member");
     }
 
     /** Getters */
@@ -83,7 +102,8 @@ public class Member {
         this.group = group;
     }
 
-    public void setRank(Rank rank) {
+    public void setRank(Rank rank) throws SQLException {
         this.rank = rank;
+        Database.members.update(this);
     }
 }
