@@ -4,16 +4,21 @@ import com.technovision.fortress.data.Database;
 import com.technovision.fortress.data.entity.Group;
 import com.technovision.fortress.Fortress;
 import com.technovision.fortress.data.entity.Member;
+import com.technovision.fortress.handlers.InventoryHandler;
 import com.technovision.fortress.util.CKException;
 import com.technovision.fortress.util.EffectUtils;
 import com.technovision.fortress.util.MessageUtils;
 import com.technovision.fortress.util.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
-import javax.xml.crypto.Data;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +45,11 @@ public class GroupCommand extends CommandBase {
         commands.put("rescind", "<group> <player> - Cancel a player's invite to your group.");
         commands.put("join", "<group> [password] - Join a group that has invited you (or use a password).");
         commands.put("invites", "List all groups that have invited you.");
+        commands.put("list", "[player] - List all groups that you or another player are in.");
 
         // Not Yet Implemented
         /**
          commands.put("leave", "<group> - Leave a group that you are currently in.");
-         commands.put("list", "[player] - List all groups that you or another player are in.");
          commands.put("remove", "<group> <player> - Remove a player from your group.");
          commands.put("perms", "Manage permissions for player ranks in a group.");
          commands.put("bio", "<group> <text> - Set a biography for a group (100 chars max).");
@@ -233,6 +238,83 @@ public class GroupCommand extends CommandBase {
         MessageUtils.sendHeading(player, "Your Invites");
         MessageUtils.send(player, groupList.toArray(new String[0]));
     }
+
+    public void list_cmd() throws CKException {
+        OfflinePlayer player;
+        List<Member> members;
+        if (args.length >= 2) {
+            player = getPlayerFromArgs(1);
+            if (player == null || !player.hasPlayedBefore()) {
+                throw new CKException("The player you specified doesn't exist.");
+            }
+            members = getMemberFromPlayer(player.getUniqueId());
+        } else {
+            player = getPlayer();
+            members = getMemberFromPlayer(player.getUniqueId());
+        }
+
+        int pageSize = 45; // Number of items per page
+        int totalPages = (int) Math.ceil((double) members.size() / pageSize);
+
+        List<Inventory> pages = new ArrayList<>();
+        for (int i = 0; i < totalPages; i++) {
+            Inventory page = Bukkit.createInventory(null, 54, "Groups - Page " + (i + 1));
+            pages.add(page);
+        }
+
+        for (int i = 0; i < members.size(); i++) {
+            Member member = members.get(i);
+            Group group = member.getGroup();
+            if (group != null) {
+
+                Material mat;
+                if (member.getRank().getName().equalsIgnoreCase("member")) {
+                    mat = Material.LEATHER_CHESTPLATE;
+                } else if (member.getRank().getName().equalsIgnoreCase("moderator")) {
+                    mat = Material.IRON_CHESTPLATE;
+                } else if (member.getRank().getName().equalsIgnoreCase("admin")) {
+                    mat = Material.GOLDEN_CHESTPLATE;
+                } else {
+                    mat = Material.DIAMOND_CHESTPLATE;
+                }
+
+                ItemStack item = new ItemStack(mat);
+                ItemMeta meta = item.getItemMeta();
+                meta.setDisplayName(ChatColor.YELLOW + group.getName());
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+                String rankName = member.getRank().getName().substring(0, 1).toUpperCase() + member.getRank().getName().substring(1);
+                meta.setLore(List.of(ChatColor.GRAY + rankName));
+                item.setItemMeta(meta);
+
+                int pageIndex = i / pageSize;
+                int slot = i % pageSize;
+                pages.get(pageIndex).setItem(slot, item);
+            }
+        }
+
+        for (int i = 0; i < totalPages; i++) {
+            Inventory page = pages.get(i);
+
+            if (i > 0) {
+                ItemStack previousPageItem = new ItemStack(Material.ARROW);
+                ItemMeta previousPageMeta = previousPageItem.getItemMeta();
+                previousPageMeta.setDisplayName(ChatColor.WHITE + "Previous Page");
+                previousPageItem.setItemMeta(previousPageMeta);
+                page.setItem(45, previousPageItem);
+            }
+
+            if (i < totalPages - 1) {
+                ItemStack nextPageItem = new ItemStack(Material.ARROW);
+                ItemMeta nextPageMeta = nextPageItem.getItemMeta();
+                nextPageMeta.setDisplayName(ChatColor.WHITE + "Next Page");
+                nextPageItem.setItemMeta(nextPageMeta);
+                page.setItem(53, nextPageItem);
+            }
+        }
+        InventoryHandler.inventoryPages.put(player.getUniqueId(), pages);
+        getPlayer().openInventory(pages.get(0));
+    }
+
 
     private String[] createGroupMessage(Group group) {
         String[] msg = {

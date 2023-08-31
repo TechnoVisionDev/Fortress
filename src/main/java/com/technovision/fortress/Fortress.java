@@ -2,6 +2,7 @@ package com.technovision.fortress;
 
 import com.technovision.fortress.commands.GroupCommand;
 import com.technovision.fortress.data.Database;
+import com.technovision.fortress.handlers.InventoryHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.sql.SQLException;
@@ -35,7 +36,7 @@ public class Fortress extends JavaPlugin {
         this.getCommand("group").setExecutor(groupCommand);
 
         // Register event handlers
-        //getServer().getPluginManager().registerEvents(new MemberHandler(), this);
+        getServer().getPluginManager().registerEvents(new InventoryHandler(), this);
 
         logger.info(String.format("[%s] - Successfully loaded!", getDescription().getName()));
     }

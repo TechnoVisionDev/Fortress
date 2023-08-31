@@ -1,6 +1,7 @@
 name: Fortress
 version: 1.0.0
 main: com.technovision.fortress.Fortress
+api-version: '1.20'
 commands:
   group:
     description: Manage your groups
